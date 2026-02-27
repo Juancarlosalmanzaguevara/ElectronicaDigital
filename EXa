@@ -1,0 +1,48 @@
+#include <stdint.h>
+#include <stdbool.h>
+
+void actualizar_salidas() {
+    
+    // Entradas
+    uint8_t puerto_b = PINB & 0x03; 
+    uint8_t puerto_c = PINC & 0x03; 
+    
+    uint8_t numero = (puerto_b << 2) | puerto_c;
+
+
+    uint8_t es_impar = numero & 0x01; 
+
+
+    uint8_t es_potencia_de_2 = 0;
+    if (numero == 1 || numero == 2 || numero == 4 || numero == 8) {
+        es_potencia_de_2 = 1;
+    }
+
+
+    // PA2 a PA8
+    const uint8_t hex_display[16] = {
+        0x3F, // 0
+        0x06, // 1
+        0x5B, // 2
+        0x4F, // 3
+        0x66, // 4
+        0x6D, // 5
+        0x7D, // 6
+        0x07, // 7
+        0x7F, // 8
+        0x6F, // 9
+        0x77, // A
+        0x7C, // B
+        0x39, // C
+        0x5E, // D
+        0x79, // E
+        0x71  // F
+    };
+    
+    uint16_t segmentos = hex_display[numero];
+
+
+    
+    
+    PORTA = es_impar | (es_potencia_de_2 << 1) | (segmentos << 2);
+}
