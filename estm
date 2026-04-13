@@ -1,0 +1,68 @@
+//Variables globales de estado
+int nivel_agua = 0;
+uint8_t bomba_encendida = 0; // 0 = Apagada, 1 = Encendida
+
+// Pines: A, B, C, D, E, F, G
+const uint8_t display_7seg[9] = {
+    0x3F, // 0: 0011 1111
+    0x06, // 1: 0000 0110
+    0x5B, // 2: 0101 1011
+    0x4F, // 3: 0100 1111
+    0x66, // 4: 0110 0110
+    0x6D, // 5: 0110 1101
+    0x7D, // 6: 0111 1101
+    0x07, // 7: 0000 0111
+    0x7F  // 8: 0111 1111
+};
+
+void actualizarDisplay(int numero) {
+    if (numero < 0 || numero > 8) return;
+    
+    uint8_t mascara = display_7seg[numero];
+    
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, (mascara & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET); // A
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, (mascara & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET); // B
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, (mascara & 0x04) ? GPIO_PIN_SET : GPIO_PIN_RESET); // C
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, (mascara & 0x08) ? GPIO_PIN_SET : GPIO_PIN_RESET); // D
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, (mascara & 0x10) ? GPIO_PIN_SET : GPIO_PIN_RESET); // E
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, (mascara & 0x20) ? GPIO_PIN_SET : GPIO_PIN_RESET); // F
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, (mascara & 0x40) ? GPIO_PIN_SET : GPIO_PIN_RESET); // G
+}
+
+/* Bucle principal (dentro del int main) */
+while (1) {
+    // botones para simular el nivel 
+    if (HAL_GPIO_ReadPin(GPIOB, BTN_SUBIR_Pin) == GPIO_PIN_SET) {
+        if(nivel_agua < 8) nivel_agua++;
+        HAL_Delay(200); // Debounce básico
+    }
+    if (HAL_GPIO_ReadPin(GPIOB, BTN_BAJAR_Pin) == GPIO_PIN_SET) {
+        if(nivel_agua > 0) nivel_agua--;
+        HAL_Delay(200); 
+    }
+
+    uint8_t is_ready = (nivel_agua > 3) ? 1 : 0;
+    HAL_GPIO_WritePin(GPIOC, READY_LED_Pin, is_ready ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+    uint8_t is_warning = (nivel_agua < 2) ? 1 : 0;
+    HAL_GPIO_WritePin(GPIOC, WARNING_LED_Pin, is_warning ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+    if (HAL_GPIO_ReadPin(GPIOB, BTN_START_BOMBA_Pin) == GPIO_PIN_SET) {
+        if (is_ready) {
+            bomba_encendida = 1;
+        }
+    }
+
+    //  Apagado automático de emergencia (Nivel cae a 1 o 0)
+    if (bomba_encendida == 1 && nivel_agua < 2) {
+        bomba_encendida = 0;
+    }
+
+    HAL_GPIO_WritePin(GPIOC, WORK_LED_Pin, bomba_encendida ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOC, BOMBA_RELAY_Pin, bomba_encendida ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+    // Actualizar el display de 7 segmentos
+    actualizarDisplay(nivel_agua);
+
+    HAL_Delay(50); // Pequeño delay de ciclo
+}
